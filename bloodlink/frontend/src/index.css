@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; }
+  body { @apply font-sans bg-gray-50 text-gray-900; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-blood-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:bg-blood-700 transition-colors shadow-md shadow-blood-200 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply border border-gray-200 text-gray-700 font-medium px-5 py-2.5 rounded-lg hover:bg-gray-50 transition-colors;
+  }
+  .card {
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm;
+  }
+  .input {
+    @apply w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blood-500 focus:border-transparent;
+  }
+}

@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  backend:
+    build: ./backend
+    container_name: bloodlink-backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    ports:
+      - "5000:5000"
+    volumes:
+      - /tmp/bloodlink-uploads:/tmp/uploads
+      - ./backend/logs:/app/logs
+    networks:
+      - bloodlink-net
+
+  frontend:
+    build: ./frontend
+    container_name: bloodlink-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - bloodlink-net
+
+networks:
+  bloodlink-net:
+    driver: bridge
