@@ -1,60 +1,54 @@
 const User = require('../models/User.model');
-const BloodDonation = require('../models/BloodDonation.model');
-const { getCompatibleDonors, isDonorEligibleByDate } = require('./bloodCompatibility.service');
 
 /**
- * Find matched donors for a blood request
- * @param {Object} request - BloodRequest document
- * @param {number} radiusKm - Search radius in km (default 20)
+ * Find donors near a location using MongoDB geospatial ($nearSphere)
+ * Coordinates are stored silently — users only ever see plain text addresses
+ *
+ * @param {number} lng            - Hospital longitude
+ * @param {number} lat            - Hospital latitude
+ * @param {string[]} compatibleGroups - Compatible blood groups for the request
+ * @param {number} radiusKm       - Search radius in kilometres (5 / 10 / 25)
+ * @param {number} limit          - Max donors to return
  */
-const findMatchedDonors = async (request, radiusKm = 20) => {
-  const compatibleBloodGroups = getCompatibleDonors(request.bloodGroup);
-  const radiusMeters = radiusKm * 1000;
-
-  // Find users with compatible blood groups near the request location
-  const candidates = await User.find({
-    role: 'USER',
-    isActive: true,
-    bloodGroup: { $in: compatibleBloodGroups },
+const findNearbyDonors = async (lng, lat, compatibleGroups, radiusKm = 10, limit = 20) => {
+  const donors = await User.find({
+    role:       'USER',
+    isActive:   true,
+    bloodGroup: { $in: compatibleGroups },
+    // Only search donors who have a real location stored (not default [0,0])
+    'location.coordinates': { $ne: [0, 0] },
     location: {
       $nearSphere: {
-        $geometry: {
-          type: 'Point',
-          coordinates: request.location.coordinates,
-        },
-        $maxDistance: radiusMeters,
+        $geometry: { type: 'Point', coordinates: [lng, lat] },
+        $maxDistance: radiusKm * 1000, // metres
       },
     },
-  }).select('name email bloodGroup lastDonationDate location phone');
+  })
+    .select('name email bloodGroup address location')
+    .limit(limit);
 
-  // Filter by 90-day gap eligibility
-  const eligible = candidates.filter((donor) => isDonorEligibleByDate(donor.lastDonationDate));
-
-  // Calculate distance for each donor
-  const [reqLng, reqLat] = request.location.coordinates;
-  const withDistance = eligible.map((donor) => {
-    const [donLng, donLat] = donor.location.coordinates;
-    const dist = haversineDistance(reqLat, reqLng, donLat, donLng);
-    return { donor, distance: parseFloat(dist.toFixed(2)) };
+  // Attach calculated distance to each result
+  return donors.map((donor) => {
+    const [dLng, dLat] = donor.location.coordinates;
+    const dist = haversineKm(lat, lng, dLat, dLng);
+    return { donor, distance: Math.round(dist * 10) / 10 };
   });
-
-  // Sort by distance ascending
-  withDistance.sort((a, b) => a.distance - b.distance);
-
-  return withDistance;
 };
 
-// Haversine formula for distance in km
-const haversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
+/**
+ * Haversine formula — straight-line distance between two lat/lng points
+ * Returns distance in kilometres
+ */
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R    = 6371;
   const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+  const dLng = toRad(lng2 - lng1);
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
 const toRad = (deg) => (deg * Math.PI) / 180;
 
-module.exports = { findMatchedDonors };
+module.exports = { findNearbyDonors };

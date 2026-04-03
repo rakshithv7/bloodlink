@@ -21,10 +21,11 @@ const bloodDonationSchema = new mongoose.Schema(
     bloodType: { type: String, enum: BLOOD_TYPES, default: 'Whole Blood' },
     units: { type: Number, default: 1, min: 1 },
     documents: [{ url: String, publicId: String }],
-    location: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
-      coordinates: { type: [Number], required: true },
-    },
+    address: {
+  type: String,
+  required: true,
+  trim: true,
+},
     status: {
       type: String,
       enum: ['PENDING', 'APPROVED', 'REJECTED', 'USED', 'EXPIRED'],
@@ -42,7 +43,6 @@ const bloodDonationSchema = new mongoose.Schema(
 );
 
 bloodDonationSchema.index({ bloodGroup: 1, status: 1 });
-bloodDonationSchema.index({ location: '2dsphere' });
 bloodDonationSchema.index({ donor: 1 });
 bloodDonationSchema.index({ expiryDate: 1 });
 

@@ -16,5 +16,6 @@ router.get('/expiring', authorize('SUPER_ADMIN', 'HOSPITAL_ADMIN', 'MANAGER'), r
 router.get('/', authorize('SUPER_ADMIN', 'HOSPITAL_ADMIN', 'MANAGER'), requireApproved, donation.getAllDonations);
 router.get('/:id', donation.getDonationById);
 router.patch('/:id/approval', authorize('SUPER_ADMIN', 'HOSPITAL_ADMIN', 'MANAGER'), requireApproved, donation.approveDonation);
-
+router.patch("/:donationId/issue",authorize("SUPER_ADMIN", "HOSPITAL_ADMIN", "MANAGER"),requireApproved,donation.issueBloodUnits
+);
 module.exports = router;
